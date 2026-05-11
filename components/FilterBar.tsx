@@ -69,6 +69,7 @@ export default function FilterBar({ active, onChange }: FilterBarProps) {
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 100,
+        maxWidth: 'calc(100vw - 32px)',
         background: 'var(--filter-bg)',
         border: '1px solid var(--filter-border)',
         borderRadius: '999px',
@@ -76,11 +77,13 @@ export default function FilterBar({ active, onChange }: FilterBarProps) {
         boxShadow: '0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.16)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2px',
-      }}
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      } as React.CSSProperties}
+      className="filter-bar-inner"
     >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
       {FILTERS.map(({ key, label, Icon }) => {
         const isActive = active === key
         return (
@@ -110,6 +113,7 @@ export default function FilterBar({ active, onChange }: FilterBarProps) {
           </button>
         )
       })}
+      </div>
     </div>
   )
 }

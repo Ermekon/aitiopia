@@ -15,13 +15,7 @@ export default function GridLayout({ images, onSelect }: GridLayoutProps) {
   return (
     <div
       ref={ref}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        columnGap: '16px',
-        rowGap: '40px',
-        padding: '72px 24px 40px 24px',
-      }}
+      className="gallery-grid"
     >
       {images.map((image, i) => (
         <PhotoCard

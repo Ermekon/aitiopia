@@ -215,6 +215,39 @@ body {
   .series-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* ── Responsive gallery grid ─────────────────────── */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: 16px;
+  row-gap: 40px;
+  padding: 80px 24px 120px;
+}
+@media (max-width: 640px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 8px;
+    row-gap: 16px;
+    padding: 80px 12px 120px;
+  }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 80px 20px 120px;
+  }
+}
+
+/* ── Filter bar ───────────────────────────────────── */
+.filter-bar-inner::-webkit-scrollbar { display: none; }
+
+/* ── Theme toggle — lift above filter bar on mobile ── */
+@media (max-width: 640px) {
+  .theme-toggle-wrap {
+    bottom: 90px !important;
+  }
+}
+
 /* ── Mobile overrides ────────────────────────────── */
 @media (max-width: 768px) {
   .flow-layout { columns: 2 !important; }

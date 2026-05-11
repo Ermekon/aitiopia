@@ -31,11 +31,12 @@ export default function ThemeToggle({ theme, onChange }: Props) {
 
   return (
     <div
+      className="theme-toggle-wrap"
       style={{
         position: 'fixed',
         bottom: 24,
         left: 24,
-        zIndex: 100,
+        zIndex: 200,
         display: 'flex',
         alignItems: 'center',
         gap: 8,
