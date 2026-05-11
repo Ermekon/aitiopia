@@ -19,7 +19,7 @@ const { createInterface } = require('readline/promises')
 const { createClient }    = require('@supabase/supabase-js')
 
 const BUCKET      = 'aitiopia-images'
-const VALID_SERIES = ['drop', 'process', 'meaning']
+const VALID_SERIES = ['letters', 'words', 'miscellaneous', 'year']
 
 // ── .env.local parser ─────────────────────────────────────────────────────────
 function loadEnv() {
@@ -98,7 +98,7 @@ async function askRequired(rl, label) {
 
 async function askSeries(rl) {
   for (;;) {
-    const v = await ask(rl, 'series       (drop / process / meaning) : ')
+    const v = await ask(rl, 'series       (letters / words / miscellaneous / year) : ')
     if (VALID_SERIES.includes(v)) return v
     console.log(`    ↳ must be one of: ${VALID_SERIES.join(', ')}`)
   }
