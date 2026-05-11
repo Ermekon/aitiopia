@@ -95,6 +95,20 @@ export default function FlowLayout({ images, onSelect }: FlowLayoutProps) {
 
   return (
     <div className="flow-container">
+      {/* Left edge fade */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '60px',
+          left: 0,
+          width: '60px',
+          bottom: 0,
+          background: 'linear-gradient(to right, var(--bg), transparent)',
+          pointerEvents: 'none',
+          zIndex: 10,
+        }}
+      />
       {/* Right edge fade */}
       <div
         aria-hidden="true"
@@ -102,7 +116,7 @@ export default function FlowLayout({ images, onSelect }: FlowLayoutProps) {
           position: 'absolute',
           top: '60px',
           right: 0,
-          width: '80px',
+          width: '60px',
           bottom: 0,
           background: 'linear-gradient(to left, var(--bg), transparent)',
           pointerEvents: 'none',
@@ -126,6 +140,7 @@ export default function FlowLayout({ images, onSelect }: FlowLayoutProps) {
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           cursor: isDragging ? 'grabbing' : 'grab',
+          background: 'var(--bg)',
         } as React.CSSProperties}
         onMouseDown={() => setIsDragging(true)}
         onMouseUp={() => setIsDragging(false)}

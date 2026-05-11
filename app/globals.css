@@ -275,14 +275,15 @@ body {
 }
 
 /* ── Flow card responsive sizing ────────────────── */
+/* Cards fill ~85% of the available viewport height so no awkward dark bands appear */
 .flow-item {
-  width: 303px;
-  height: 403px;
+  height: min(calc(100svh - 108px), 580px);
+  aspect-ratio: 3 / 4;
+  flex-shrink: 0;
 }
 @media (max-width: 480px) {
   .flow-item {
-    width: 220px;
-    height: 293px;
+    height: min(calc(100svh - 108px), 380px);
   }
 }
 
