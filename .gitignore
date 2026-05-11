@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local image uploads (run scripts/upload-images.js to send to Supabase)
+/uploads/
