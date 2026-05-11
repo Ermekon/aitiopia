@@ -56,13 +56,10 @@ export default function Image() {
           style={{
             fontSize: 88,
             fontWeight: 800,
-            color: '#F0EEFF',
             letterSpacing: '-2px',
             lineHeight: 1,
             marginBottom: 24,
-            background: 'linear-gradient(135deg, #7B5CF0, #D946A8)',
-            backgroundClip: 'text',
-            color: 'transparent',
+            color: '#A78BF6',
           }}
         >
           AItiopia
