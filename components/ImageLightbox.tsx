@@ -88,6 +88,7 @@ export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
       {/* Selected image — click stops propagation */}
       <div
         onClick={(e) => e.stopPropagation()}
+        className="lightbox-image"
         style={{
           position: 'relative',
           height: '80vh',
@@ -116,9 +117,10 @@ export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
         )}
       </div>
 
-      {/* Metadata panel — fixed bottom-right */}
+      {/* Metadata panel — fixed bottom-right, hidden on mobile */}
       <div
         onClick={(e) => e.stopPropagation()}
+        className="lightbox-meta"
         style={{
           position: 'fixed',
           bottom: '24px',

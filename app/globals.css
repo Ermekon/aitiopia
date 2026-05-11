@@ -248,6 +248,12 @@ body {
   }
 }
 
+/* ── Lightbox — hide info card on mobile, expand image ── */
+@media (max-width: 640px) {
+  .lightbox-meta  { display: none !important; }
+  .lightbox-image { max-width: 92vw !important; height: 75vh !important; }
+}
+
 /* ── Mobile overrides ────────────────────────────── */
 @media (max-width: 768px) {
   .flow-layout { columns: 2 !important; }
