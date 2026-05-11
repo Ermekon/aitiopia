@@ -9,6 +9,17 @@ interface FilterBarProps {
   onChange: (f: FilterKey) => void
 }
 
+function AllIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="5" height="5" rx="1" stroke="currentColor"/>
+      <rect x="7.5" y="0.5" width="5" height="5" rx="1" stroke="currentColor"/>
+      <rect x="0.5" y="7.5" width="5" height="5" rx="1" stroke="currentColor"/>
+      <rect x="7.5" y="7.5" width="5" height="5" rx="1" stroke="currentColor"/>
+    </svg>
+  )
+}
+
 function LettersIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -54,9 +65,10 @@ function YearIcon() {
 }
 
 const FILTERS: { key: FilterKey; label: string; Icon: () => React.ReactElement }[] = [
+  { key: 'all',           label: 'All',           Icon: AllIcon     },
   { key: 'letters',       label: 'Letters',       Icon: LettersIcon },
   { key: 'words',         label: 'Words',         Icon: WordsIcon   },
-  { key: 'miscellaneous', label: 'Miscellaneous', Icon: MiscIcon    },
+  { key: 'miscellaneous', label: 'Misc',          Icon: MiscIcon    },
   { key: 'year',          label: 'Year',          Icon: YearIcon    },
 ]
 
@@ -89,7 +101,7 @@ export default function FilterBar({ active, onChange }: FilterBarProps) {
         return (
           <button
             key={key}
-            onClick={() => onChange(isActive ? 'all' : key)}
+            onClick={() => onChange(isActive && key !== 'all' ? 'all' : key)}
             style={{
               display: 'flex',
               alignItems: 'center',

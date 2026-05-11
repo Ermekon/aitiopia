@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import NextImage from 'next/image'
 import type { Image } from '@/lib/types'
 import { SUPABASE_IMAGES_URL } from '@/lib/constants'
@@ -9,48 +8,64 @@ import { SUPABASE_IMAGES_URL } from '@/lib/constants'
 interface ImageLightboxProps {
   image: Image
   onClose: () => void
+  onPrev?: () => void
+  onNext?: () => void
+  hasPrev?: boolean
+  hasNext?: boolean
 }
 
-function SearchIcon() {
+function CloseIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="8.5" cy="8.5" r="5.5" stroke="#000000" strokeWidth="1.5" />
-      <line x1="12.5" y1="12.5" x2="17" y2="17" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
 
-function CalendarIcon() {
+function ChevronLeft() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="2" y="4" width="16" height="14" rx="2" stroke="#000000" strokeWidth="1.5" />
-      <line x1="2" y1="8" x2="18" y2="8" stroke="#000000" strokeWidth="1.5" />
-      <line x1="6" y1="2" x2="6" y2="6" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="14" y1="2" x2="14" y2="6" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
+      <path d="M7 1L1 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
-function PenIcon() {
+function ChevronRight() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M14 3L17 6L7 16H4V13L14 3Z" stroke="#000000" strokeWidth="1.5" strokeLinejoin="round" />
+    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
+      <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
-function InfoIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="10" cy="10" r="8" stroke="#000000" strokeWidth="1.5" />
-      <circle cx="10" cy="6.5" r="1" fill="#000000" />
-      <line x1="10" y1="9" x2="10" y2="14" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
+const navBtnStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  width: '44px',
+  height: '44px',
+  borderRadius: '50%',
+  background: 'rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.18)',
+  color: '#FFFFFF',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 360,
+  transition: 'background 200ms ease',
 }
 
-export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
+export default function ImageLightbox({
+  image,
+  onClose,
+  onPrev,
+  onNext,
+  hasPrev = false,
+  hasNext = false,
+}: ImageLightboxProps) {
   const [imgError, setImgError] = useState(false)
+  const [visible, setVisible] = useState(false)
   const src = `${SUPABASE_IMAGES_URL}/${image.storage_path}`
 
   const date = new Date(image.created_at).toLocaleDateString('en-US', {
@@ -59,33 +74,97 @@ export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
     day: 'numeric',
   })
 
+  // Entrance fade-in
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  // Keyboard: Escape closes, arrows navigate
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft' && hasPrev) onPrev?.()
+      if (e.key === 'ArrowRight' && hasNext) onNext?.()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+  }, [onClose, onPrev, onNext, hasPrev, hasNext])
 
   return (
     <div
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Image preview"
+      aria-label={`${image.amharic_word} — ${image.english_word}`}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 350,
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.88)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 250ms ease',
       }}
     >
-      {/* Selected image — click stops propagation */}
+      {/* Close button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onClose() }}
+        aria-label="Close"
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          width: '44px',
+          height: '44px',
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          color: '#FFFFFF',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 360,
+          transition: 'background 200ms ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+      >
+        <CloseIcon />
+      </button>
+
+      {/* Prev button */}
+      {hasPrev && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPrev?.() }}
+          aria-label="Previous image"
+          style={{ ...navBtnStyle, left: '16px' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+        >
+          <ChevronLeft />
+        </button>
+      )}
+
+      {/* Next button */}
+      {hasNext && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNext?.() }}
+          aria-label="Next image"
+          style={{ ...navBtnStyle, right: '16px' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+        >
+          <ChevronRight />
+        </button>
+      )}
+
+      {/* Image */}
       <div
         onClick={(e) => e.stopPropagation()}
         className="lightbox-image"
@@ -95,7 +174,7 @@ export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
           width: 'auto',
           maxWidth: '55vw',
           aspectRatio: '3/4',
-          borderRadius: '4px',
+          borderRadius: '6px',
           overflow: 'hidden',
           flexShrink: 0,
         }}
@@ -115,9 +194,33 @@ export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
             onError={() => setImgError(true)}
           />
         )}
+
+        {/* Mobile info overlay at bottom of image */}
+        <div className="lightbox-mobile-info" style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.78))',
+          padding: '40px 16px 20px',
+        }}>
+          {image.fidel_letter && (
+            <p style={{ fontFamily: 'serif', fontSize: '28px', color: '#FFFFFF', margin: '0 0 4px', lineHeight: 1 }}>
+              {image.fidel_letter}
+            </p>
+          )}
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '14px', color: '#FFFFFF', margin: 0 }}>
+            {image.english_word}
+          </p>
+          {image.amharic_word && (
+            <p style={{ fontFamily: 'serif', fontSize: '13px', color: 'rgba(255,255,255,0.65)', margin: '2px 0 0' }}>
+              {image.amharic_word}
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Metadata panel — fixed bottom-right, hidden on mobile */}
+      {/* Metadata panel — desktop only */}
       <div
         onClick={(e) => e.stopPropagation()}
         className="lightbox-meta"
@@ -125,129 +228,59 @@ export default function ImageLightbox({ image, onClose }: ImageLightboxProps) {
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          width: '200px',
+          width: '210px',
           background: '#FFFFFF',
-          borderRadius: '12px',
+          borderRadius: '14px',
           padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0',
         }}
       >
-        {/* Row 1: ⓘ info icon alone */}
-        <div style={{ marginBottom: '20px' }}>
-          <InfoIcon />
-        </div>
-
-        {/* Row 2: Meaning */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px',
-          }}
-        >
-          <SearchIcon />
-          <div style={{ textAlign: 'right' }}>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '10px',
-                color: '#888',
-                margin: '0 0 1px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Meaning
-            </p>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 500,
-                fontSize: '13px',
-                color: '#000000',
-                margin: 0,
-              }}
-            >
-              {image.english_word}
+        {/* Fidel letter — hero element */}
+        {image.fidel_letter && (
+          <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+            <p style={{ fontFamily: 'serif', fontSize: '52px', color: '#111111', margin: 0, lineHeight: 1 }}>
+              {image.fidel_letter}
             </p>
           </div>
+        )}
+
+        <div style={{ height: '1px', background: '#EEEEEE', marginBottom: '16px' }} />
+
+        {/* Amharic word */}
+        <div style={{ marginBottom: '14px' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: '#888', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Amharic
+          </p>
+          <p style={{ fontFamily: 'serif', fontSize: '20px', color: '#111111', margin: 0, lineHeight: 1.3 }}>
+            {image.amharic_word}
+          </p>
         </div>
 
-        {/* Row 3: Date */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px',
-          }}
-        >
-          <CalendarIcon />
-          <div style={{ textAlign: 'right' }}>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '10px',
-                color: '#888',
-                margin: '0 0 1px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Date
-            </p>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 500,
-                fontSize: '13px',
-                color: '#000000',
-                margin: 0,
-              }}
-            >
-              {date}
-            </p>
-          </div>
+        {/* English meaning */}
+        <div style={{ marginBottom: '14px' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: '#888', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Meaning
+          </p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', color: '#111111', margin: 0 }}>
+            {image.english_word}
+          </p>
         </div>
 
-        {/* Row 4: Tools used */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '24px',
-          }}
-        >
-          <PenIcon />
-          <div style={{ textAlign: 'right' }}>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '10px',
-                color: '#888',
-                margin: '0 0 1px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Tools used
-            </p>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 500,
-                fontSize: '13px',
-                color: '#000000',
-                margin: 0,
-              }}
-            >
-              Adobe Firefly
-            </p>
-          </div>
+        {/* Date */}
+        <div style={{ marginBottom: '16px' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: '#888', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Date
+          </p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: '12px', color: '#111111', margin: 0 }}>
+            {date}
+          </p>
         </div>
 
-        {/* Bottom: Aitiopia logo */}
+        <div style={{ height: '1px', background: '#EEEEEE', marginBottom: '14px' }} />
+
+        {/* Logo */}
         <NextImage
           src="/logo.svg"
           alt="AItiopia"

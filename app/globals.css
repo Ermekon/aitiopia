@@ -248,15 +248,59 @@ body {
   }
 }
 
+/* ── Mobile overrides ────────────────────────────── */
+@media (max-width: 768px) {
+  .flow-layout { columns: 2 !important; }
+}
+
+/* ── Focus ring ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-start);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── TopBar backdrop blur ────────────────────────── */
+.topbar-backdrop {
+  background: rgba(6, 6, 15, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="light"] .topbar-backdrop {
+  background: rgba(245, 245, 240, 0.8);
+}
+
+/* ── Flow card responsive sizing ────────────────── */
+.flow-item {
+  width: 303px;
+  height: 403px;
+}
+@media (max-width: 480px) {
+  .flow-item {
+    width: 220px;
+    height: 293px;
+  }
+}
+
+/* ── Flow container edge fades ───────────────────── */
+.flow-container {
+  position: relative;
+}
+
+/* ── Lightbox mobile info overlay ───────────────── */
+.lightbox-mobile-info {
+  display: none;
+}
+
 /* ── Lightbox — hide info card on mobile, expand image ── */
 @media (max-width: 640px) {
   .lightbox-meta  { display: none !important; }
   .lightbox-image { max-width: 92vw !important; height: 75vh !important; }
-}
-
-/* ── Mobile overrides ────────────────────────────── */
-@media (max-width: 768px) {
-  .flow-layout { columns: 2 !important; }
+  .lightbox-mobile-info { display: block !important; }
 }
 
 /* ── Reduced motion ──────────────────────────────── */

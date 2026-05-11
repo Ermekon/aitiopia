@@ -1,5 +1,5 @@
-import PageClient from '@/components/PageClient'
+import DynamicPage from '@/components/DynamicPage'
 
 export default function Home() {
-  return <PageClient />
+  return <DynamicPage />
 }

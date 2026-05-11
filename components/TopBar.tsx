@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import type { View } from '@/lib/types'
 
 interface TopBarProps {
@@ -32,8 +33,17 @@ function GridIcon() {
 const ACCENT = 'linear-gradient(90deg, #6B30F5, #C03FA0)'
 
 export default function TopBar({ view, onViewChange, onOpenDrawer }: TopBarProps) {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 8)
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
+
   return (
     <header
+      className={scrolled ? 'topbar-backdrop' : ''}
       style={{
         position: 'fixed',
         top: 0,
@@ -41,14 +51,14 @@ export default function TopBar({ view, onViewChange, onOpenDrawer }: TopBarProps
         right: 0,
         zIndex: 200,
         height: '60px',
-        background: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 24px',
+        transition: 'background 300ms ease, border-color 300ms ease',
       }}
     >
-      {/* Left — hamburger + Aitiopia */}
+      {/* Left — hamburger + AItiopia */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button
           onClick={onOpenDrawer}
@@ -61,24 +71,12 @@ export default function TopBar({ view, onViewChange, onOpenDrawer }: TopBarProps
             background: 'none',
             border: 'none',
             padding: '4px',
+            borderRadius: '4px',
           }}
         >
-          <div
-            style={{
-              width: '22px',
-              height: '2px',
-              background: ACCENT,
-              borderRadius: '1px',
-            }}
-          />
-          <div
-            style={{
-              width: '22px',
-              height: '2px',
-              background: ACCENT,
-              borderRadius: '1px',
-            }}
-          />
+          <div style={{ width: '22px', height: '2px', background: ACCENT, borderRadius: '1px' }} />
+          <div style={{ width: '16px', height: '2px', background: ACCENT, borderRadius: '1px' }} />
+          <div style={{ width: '22px', height: '2px', background: ACCENT, borderRadius: '1px' }} />
         </button>
 
         <span
@@ -93,7 +91,7 @@ export default function TopBar({ view, onViewChange, onOpenDrawer }: TopBarProps
             letterSpacing: '-0.01em',
           }}
         >
-          Aitiopia
+          AItiopia
         </span>
       </div>
 
@@ -114,6 +112,7 @@ export default function TopBar({ view, onViewChange, onOpenDrawer }: TopBarProps
             <button
               key={v}
               onClick={() => onViewChange(v)}
+              aria-pressed={active}
               style={{
                 fontFamily: 'var(--font-display)',
                 fontWeight: 500,
