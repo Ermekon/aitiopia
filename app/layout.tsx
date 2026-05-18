@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Syne, Lora } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const syne = Syne({
@@ -54,7 +55,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-ET" className={`${syne.variable} ${lora.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
