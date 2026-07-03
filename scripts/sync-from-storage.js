@@ -14,7 +14,7 @@ const path = require('path')
 const { createClient } = require('@supabase/supabase-js')
 
 const BUCKET  = 'aitiopia-images'
-const FOLDERS = ['Letters', 'Miscellaneous', 'Words', 'Year']
+const FOLDERS = ['Letters', 'Miscellaneous', 'Words']
 
 function loadEnv() {
   const envPath = path.join(__dirname, '..', '.env.local')
@@ -69,19 +69,24 @@ async function main() {
     }
 
     for (const file of files ?? []) {
-      // Skip folder placeholders (files with no id are usually .emptyFolderPlaceholder)
-      if (!file.name || !file.id) continue
+      // Skip folder placeholders and any dotfiles (.emptyFolderPlaceholder can
+      // carry an id, so the id check alone is not enough — it created a bogus
+      // DB row in a previous run)
+      if (!file.name || !file.id || file.name.startsWith('.')) continue
       const storagePath = `${folder}/${file.name}`
       if (!existingPaths.has(storagePath)) {
         const baseName = path.basename(file.name, path.extname(file.name))
         toInsert.push({
           storage_path: storagePath,
+          // Placeholder dims — run the dimension backfill script after syncing.
           width:        900,
           height:       1200,
           series:       folder.toLowerCase(),
           fidel_letter: '—',
           amharic_word: baseName,
           english_word: baseName,
+          // Draft: invisible on the site until metadata is filled in and published.
+          status:       'draft',
         })
       }
     }

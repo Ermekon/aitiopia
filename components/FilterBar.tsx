@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
+import type { FilterKey } from '@/lib/types'
 
-export type FilterKey = 'all' | 'letters' | 'words' | 'miscellaneous' | 'year'
+export type { FilterKey }
 
 interface FilterBarProps {
   active: FilterKey
@@ -56,32 +57,27 @@ function MiscIcon() {
   )
 }
 
-function YearIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-      <path d="M9.283 0.736H8.582V0.49C8.582 0.22 8.362 0 8.092 0H8.018C7.748 0 7.528 0.22 7.528 0.49V0.736H4.1V0.49C4.1 0.22 3.88 0 3.61 0H3.536C3.266 0 3.046 0.22 3.046 0.49V0.736H2.358C1.913 0.736 1.551 1.098 1.551 1.543V10.194C1.551 10.639 1.912 11 2.356 11H10.644C11.088 11 11.45 10.639 11.45 10.194V1.543C11.45 1.098 11.088 0.736 9.283 0.736ZM8.222 0.49C8.222 0.398 8.298 0.322 8.39 0.322H8.464C8.556 0.322 8.632 0.398 8.632 0.49V0.736H8.222V0.49ZM3.369 0.49C3.369 0.398 3.444 0.322 3.536 0.322H3.61C3.703 0.322 3.778 0.398 3.778 0.49V0.736H3.369V0.49ZM11.127 10.194C11.127 10.461 10.911 10.678 10.644 10.678H2.356C2.09 10.678 1.873 10.461 1.873 10.194V5.531H11.127V10.194ZM11.127 5.208H1.873V3.039H11.127V5.208ZM11.127 2.717H1.873V1.543C1.873 1.276 2.09 1.059 2.357 1.059H3.046V1.532C3.046 1.803 3.266 2.022 3.536 2.022C3.625 2.022 3.698 1.95 3.698 1.861C3.698 1.772 3.625 1.7 3.536 1.7C3.444 1.7 3.369 1.625 3.369 1.532V1.059H7.528V1.532C7.528 1.803 7.748 2.022 8.018 2.022C8.107 2.022 8.179 1.95 8.179 1.861C8.179 1.772 8.107 1.7 8.018 1.7C7.926 1.7 7.851 1.625 7.851 1.532V1.059H9.283C9.55 1.059 11.127 1.276 11.127 1.543V2.717Z" fill="currentColor"/>
-    </svg>
-  )
-}
-
 const FILTERS: { key: FilterKey; label: string; Icon: () => React.ReactElement }[] = [
-  { key: 'all',           label: 'All',           Icon: AllIcon     },
-  { key: 'letters',       label: 'Letters',       Icon: LettersIcon },
-  { key: 'words',         label: 'Words',         Icon: WordsIcon   },
-  { key: 'miscellaneous', label: 'Misc',          Icon: MiscIcon    },
-  { key: 'year',          label: 'Year',          Icon: YearIcon    },
+  { key: 'all',           label: 'All',     Icon: AllIcon     },
+  { key: 'letters',       label: 'Letters', Icon: LettersIcon },
+  { key: 'words',         label: 'Words',   Icon: WordsIcon   },
+  { key: 'miscellaneous', label: 'Misc',    Icon: MiscIcon    },
 ]
 
 export default function FilterBar({ active, onChange }: FilterBarProps) {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '24px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 100,
-        maxWidth: 'calc(100vw - 32px)',
+    // FIXED: two-layer structure separates the fixed positioning from the pill container,
+    // so the gradient overflow hint can be positioned relative to the pill, not the viewport.
+    <div style={{
+      position: 'fixed',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 100,
+      maxWidth: 'calc(100vw - 32px)',
+    }}>
+      <div style={{
+        position: 'relative',
         background: 'var(--filter-bg)',
         border: '1px solid var(--filter-border)',
         borderRadius: '999px',
@@ -89,42 +85,53 @@ export default function FilterBar({ active, onChange }: FilterBarProps) {
         boxShadow: '0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.16)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        overflowX: 'auto',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      } as React.CSSProperties}
-      className="filter-bar-inner"
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-      {FILTERS.map(({ key, label, Icon }) => {
-        const isActive = active === key
-        return (
-          <button
-            key={key}
-            onClick={() => onChange(isActive && key !== 'all' ? 'all' : key)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              cursor: 'pointer',
-              border: 'none',
-              borderRadius: '999px',
-              background: isActive ? 'var(--filter-active-chip)' : 'transparent',
-              padding: '7px 14px',
-              fontFamily: 'var(--font-display)',
-              fontWeight: isActive ? 700 : 500,
-              fontSize: '13px',
-              letterSpacing: isActive ? '0' : '0.01em',
-              color: isActive ? 'var(--filter-active-text)' : 'var(--filter-inactive-text)',
-              transition: 'color 180ms ease, background 180ms ease, font-weight 180ms ease',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Icon />
-            {label}
-          </button>
-        )
-      })}
+      }}>
+        <div
+          className="filter-bar-inner"
+          style={{
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          } as React.CSSProperties}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            {FILTERS.map(({ key, label, Icon }) => {
+              const isActive = active === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => onChange(isActive && key !== 'all' ? 'all' : key)}
+                  // FIXED: aria-pressed tells screen readers which filter is currently active.
+                  aria-pressed={isActive}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    cursor: 'pointer',
+                    border: 'none',
+                    borderRadius: '999px',
+                    background: isActive ? 'var(--filter-active-chip)' : 'transparent',
+                    padding: '7px 14px',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: '13px',
+                    letterSpacing: isActive ? '0' : '0.01em',
+                    color: isActive ? 'var(--filter-active-text)' : 'var(--filter-inactive-text)',
+                    transition: 'color 180ms ease, background 180ms ease, font-weight 180ms ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Icon />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* FIXED: gradient fade hint — visible at ≤480px to signal that more filters exist
+            off-screen. Without this, the "Year" filter is silently clipped. */}
+        <div className="filter-overflow-hint" aria-hidden="true" />
       </div>
     </div>
   )

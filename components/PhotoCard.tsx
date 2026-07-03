@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import NextImage from 'next/image'
 import type { Image } from '@/lib/types'
-import { SUPABASE_IMAGES_URL, BLUR_PLACEHOLDER } from '@/lib/constants'
+import { storageUrl, BLUR_PLACEHOLDER } from '@/lib/constants'
+import { imageLabel } from '@/lib/image-label'
 
 interface PhotoCardProps {
   image: Image
@@ -13,8 +14,7 @@ interface PhotoCardProps {
 
 export default function PhotoCard({ image, onClick, priority = false }: PhotoCardProps) {
   const [missing, setMissing] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  const src = `${SUPABASE_IMAGES_URL}/${image.storage_path}`
+  const src = storageUrl(image.storage_path)
 
   if (missing) return null
 
@@ -22,8 +22,9 @@ export default function PhotoCard({ image, onClick, priority = false }: PhotoCar
     <button
       className="reveal-item"
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      // FIXED: explicit aria-label so screen readers announce the card independently of
+      // the img alt text, which is not guaranteed to be used as the button's accessible name.
+      aria-label={imageLabel(image)}
       style={{
         position: 'relative',
         aspectRatio: '3/4',
@@ -42,58 +43,16 @@ export default function PhotoCard({ image, onClick, priority = false }: PhotoCar
     >
       <NextImage
         src={src}
-        alt={`${image.amharic_word} — ${image.english_word}`}
+        alt={imageLabel(image)}
         fill
         sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, 25vw"
-        style={{
-          objectFit: 'cover',
-          transition: 'transform 400ms ease',
-          transform: hovered ? 'scale(1.05)' : 'scale(1)',
-        }}
+        className="card-img"
+        style={{ objectFit: 'cover' }}
         placeholder="blur"
-        blurDataURL={BLUR_PLACEHOLDER}
+        blurDataURL={image.blur_data_url ?? BLUR_PLACEHOLDER}
         priority={priority}
         onError={() => setMissing(true)}
       />
-
-      {/* Hover overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: hovered ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0)',
-          transition: 'background 300ms ease, opacity 300ms ease',
-          opacity: hovered ? 1 : 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          padding: '16px',
-        }}
-      >
-        {image.fidel_letter && (
-          <p style={{
-            fontFamily: 'serif',
-            fontSize: '32px',
-            color: '#FFFFFF',
-            margin: '0 0 4px',
-            lineHeight: 1,
-          }}>
-            {image.fidel_letter}
-          </p>
-        )}
-        <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '11px',
-          fontWeight: 500,
-          color: 'rgba(255,255,255,0.85)',
-          margin: 0,
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-        }}>
-          {image.english_word}
-        </p>
-      </div>
     </button>
   )
 }

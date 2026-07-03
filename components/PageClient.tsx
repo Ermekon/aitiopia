@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Preloader from '@/components/Preloader'
 import TopBar from '@/components/TopBar'
 import AboutDrawer from '@/components/AboutDrawer'
 import PhotoGallery from '@/components/PhotoGallery'
 import ThemeToggle from '@/components/ThemeToggle'
-import { getImages } from '@/lib/queries'
-import type { Image, View } from '@/lib/types'
+import SocialLink from '@/components/SocialLink'
+import { useView } from '@/hooks/useView'
+import type { Image, FilterKey } from '@/lib/types'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -16,18 +17,33 @@ function resolveTheme(theme: Theme): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-export default function PageClient() {
-  const [images, setImages] = useState<Image[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface PageClientProps {
+  initialImages: Image[]
+  initialFilter?: FilterKey
+}
+
+export default function PageClient({ initialImages, initialFilter }: PageClientProps) {
   const [showPreloader, setShowPreloader] = useState(true)
   const [contentVisible, setContentVisible] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [view, setView] = useState<View>('flow')
-  const [theme, setTheme] = useState<Theme>('dark')
+  const [view, setView] = useView()
 
+  // Initialize to null so server and client agree on the initial render.
+  // theme-init.js has already applied the correct data-theme before paint;
+  // we read localStorage only after hydration to avoid a mismatch.
+  const [theme, setTheme] = useState<Theme | null>(null)
+
+  // One-time mount: read the saved preference and hydrate state.
   useEffect(() => {
+    const saved = localStorage.getItem('theme') as Theme | null
+    setTheme(saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'dark')
+  }, [])
+
+  // Apply to DOM and persist — skipped while theme is null (pre-mount).
+  useEffect(() => {
+    if (theme === null) return
     document.documentElement.setAttribute('data-theme', resolveTheme(theme))
+    localStorage.setItem('theme', theme)
   }, [theme])
 
   useEffect(() => {
@@ -40,71 +56,54 @@ export default function PageClient() {
     return () => mq.removeEventListener('change', handler)
   }, [theme])
 
-  useEffect(() => {
-    getImages()
-      .then((imgs) => {
-        setImages(imgs)
-        setLoading(false)
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to load images')
-        setLoading(false)
-      })
-  }, [])
-
   const handlePreloaderComplete = useCallback(() => {
     setShowPreloader(false)
     setContentVisible(true)
   }, [])
 
-  if (error) {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'var(--bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'var(--font-display)',
-          color: 'var(--text-muted)',
-          fontSize: '14px',
-        }}
-      >
-        {error}
-      </div>
-    )
-  }
+  // Stable callbacks so TopBar (React.memo) only re-renders when view/drawerOpen change.
+  const handleToggleDrawer = useCallback(() => setDrawerOpen((open) => !open), [])
+  const handleCloseDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  // The TopBar hamburger/X — shared with AboutDrawer for focus management, since it
+  // doubles as the drawer's close button (it morphs in place like the reference site).
+  const menuToggleRef = useRef<HTMLButtonElement>(null)
 
   return (
     <>
-      {(showPreloader || loading) && (
-        <Preloader onComplete={handlePreloaderComplete} images={images} loading={loading} />
+      {showPreloader && (
+        <Preloader onComplete={handlePreloaderComplete} images={initialImages} loading={false} />
       )}
 
       <div
         style={{
           opacity: contentVisible ? 1 : 0,
-          transition: contentVisible ? 'opacity 600ms ease' : 'none',
+          // BEFORE: 'opacity 600ms ease' — content took 600ms to fully appear after preloader.
+          // AFTER:  'opacity 300ms ease' — halved; combined with preloader reduction,
+          //         saves ~300ms of perceived load time.
+          transition: contentVisible ? 'opacity 300ms ease' : 'none',
         }}
       >
         <TopBar
           view={view}
           onViewChange={setView}
-          onOpenDrawer={() => setDrawerOpen(true)}
+          drawerOpen={drawerOpen}
+          onToggleDrawer={handleToggleDrawer}
+          toggleRef={menuToggleRef}
         />
 
         <AboutDrawer
           isOpen={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
+          onClose={handleCloseDrawer}
+          toggleRef={menuToggleRef}
         />
 
         <main style={{ background: 'var(--bg)' }}>
-          <PhotoGallery images={images} view={view} />
+          <PhotoGallery images={initialImages} view={view} initialFilter={initialFilter} />
         </main>
 
-        <ThemeToggle theme={theme} onChange={setTheme} />
+        <ThemeToggle theme={theme ?? 'dark'} onChange={setTheme} />
+        <SocialLink />
       </div>
     </>
   )

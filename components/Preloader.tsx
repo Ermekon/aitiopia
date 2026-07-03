@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import NextImage from 'next/image'
 import type { Image as GalleryImage } from '@/lib/types'
-import { SUPABASE_IMAGES_URL } from '@/lib/constants'
+import { storageUrl } from '@/lib/constants'
 
 interface PreloaderProps {
   onComplete: () => void
@@ -29,7 +29,7 @@ function PreloaderThumb({ image, index, visible }: { image: GalleryImage; index:
       }}
     >
       <NextImage
-        src={`${SUPABASE_IMAGES_URL}/${image.storage_path}`}
+        src={storageUrl(image.storage_path)}
         alt=""
         fill
         sizes="36px"
@@ -47,16 +47,20 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
 
   const thumbnails = images.slice(0, 7)
 
-  // Reveal filmstrip 400ms after mount
   useEffect(() => {
     const t = setTimeout(() => setFilmstripVisible(true), 400)
     return () => clearTimeout(t)
   }, [])
 
-  // Progress bar fills to 85% while loading, then completes once data is ready
+  // BEFORE: when loading=false, progress bar took 400ms to fill, then 300ms settle,
+  //         then 400ms CSS fade = 1100ms total before onComplete fired.
+  //         Content fade-in added another 600ms → LCP element visible after ~1700ms.
+  // AFTER:  fill in 150ms, no settle delay, 200ms fade = 350ms total.
+  //         Combined with PageClient's reduced 300ms content fade, LCP is unblocked
+  //         ~1200ms sooner on every page load.
   useEffect(() => {
     const cap = loading ? 85 : 100
-    const duration = loading ? 1400 : 400
+    const duration = loading ? 1400 : 150   // CHANGED: 400 → 150
     const interval = 30
     const increment = (cap - progress) / (duration / interval)
     let current = progress
@@ -67,10 +71,9 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
         current = cap
         clearInterval(timer)
         if (!loading) {
-          setTimeout(() => {
-            setHidden(true)
-            setTimeout(onComplete, 400)
-          }, 300)
+          // CHANGED: removed 300ms settle delay; fade begins immediately
+          setHidden(true)
+          setTimeout(onComplete, 200)         // CHANGED: 400 → 200 (matches CSS below)
         }
       }
       setProgress(current)
@@ -94,11 +97,11 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
         justifyContent: 'center',
         gap: '16px',
         opacity: hidden ? 0 : 1,
-        transition: hidden ? 'opacity 400ms ease' : 'none',
+        // CHANGED: transition duration 400ms → 200ms — matches setTimeout above
+        transition: hidden ? 'opacity 200ms ease' : 'none',
         pointerEvents: hidden ? 'none' : 'auto',
       }}
     >
-      {/* Logo + subtitle */}
       <div
         style={{
           display: 'flex',
@@ -122,7 +125,7 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
             fontFamily: 'var(--font-display)',
             fontWeight: 400,
             fontSize: '13px',
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-muted)',
             letterSpacing: '0.06em',
             margin: 0,
           }}
@@ -131,7 +134,6 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
         </p>
       </div>
 
-      {/* Progress bar */}
       <div
         style={{
           width: '220px',
@@ -152,16 +154,8 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
         />
       </div>
 
-      {/* Filmstrip thumbnails — appear one by one after 400ms */}
       {thumbnails.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '3px',
-            marginTop: '4px',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '3px', marginTop: '4px' }}>
           {thumbnails.map((image, i) => (
             <PreloaderThumb key={image.id} image={image} index={i} visible={filmstripVisible} />
           ))}

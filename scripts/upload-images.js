@@ -18,8 +18,9 @@ const path = require('path')
 const { createInterface } = require('readline/promises')
 const { createClient }    = require('@supabase/supabase-js')
 
-const BUCKET      = 'aitiopia-images'
-const VALID_SERIES = ['letters', 'words', 'miscellaneous', 'year']
+const BUCKET       = 'aitiopia-images'
+const PATH_PREFIX  = 'images'   // all uploads live under this folder in the bucket
+const VALID_SERIES = ['letters', 'words', 'miscellaneous']
 
 // ── .env.local parser ─────────────────────────────────────────────────────────
 function loadEnv() {
@@ -199,15 +200,21 @@ async function main() {
     }
 
     // Metadata prompts
-    const fidel_letter = await askRequired(rl, 'fidel_letter  (e.g. ፍ)      : ')
-    const amharic_word = await askRequired(rl, 'amharic_word  (e.g. ፍቅር)   : ')
-    const english_word = await askRequired(rl, 'english_word  (e.g. Love)   : ')
-    const series       = await askSeries(rl)
+    const fidel_letter    = await askRequired(rl, 'fidel_letter     (e.g. ፍ)                 : ')
+    const amharic_word    = await askRequired(rl, 'amharic_word     (e.g. ፍቅር)              : ')
+    const english_word    = await askRequired(rl, 'english_word     (e.g. Love)              : ')
+    const series          = await askSeries(rl)
+    const ge_ez_character = await ask(rl,         'ge_ez_character  (visual char, or Enter)  : ') || null
+    const transliteration = await ask(rl,         'transliteration  (e.g. fi, or Enter)      : ') || null
+    const title           = await ask(rl,         'title            (display title, or Enter): ') || null
+    const alt_text        = await ask(rl,         'alt_text         (SEO alt text, or Enter) : ') || null
 
     // Preview
     console.log(
       `\n  → ${fidel_letter}  "${amharic_word}" / "${english_word}"` +
-      `  series:${series}  sort:${sortOrder}`
+      `  series:${series}  sort:${sortOrder}` +
+      (ge_ez_character ? `  ge_ez:${ge_ez_character}` : '') +
+      (transliteration ? `  roman:${transliteration}` : '')
     )
 
     const confirmed = await askConfirm(rl, '  Proceed?')
@@ -217,9 +224,8 @@ async function main() {
       continue
     }
 
-    // Storage path: images/<timestamp>-<sanitized-filename>
     const ext         = path.extname(filename).toLowerCase()
-    const storagePath = `images/${Date.now()}-${sanitize(filename)}`
+    const storagePath = `${PATH_PREFIX}/${Date.now()}-${sanitize(filename)}`
     const mimeType    = ext === '.png' ? 'image/png' : 'image/jpeg'
     const fileBuffer  = fs.readFileSync(filePath)
 
@@ -247,6 +253,12 @@ async function main() {
       amharic_word,
       english_word,
       sort_order: sortOrder,
+      ge_ez_character,
+      transliteration,
+      title,
+      alt_text,
+      status: 'published',
+      featured: false,
     })
 
     if (dbErr) {

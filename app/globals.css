@@ -1,9 +1,32 @@
-@import "tailwindcss";
+/* ── Base reset ──────────────────────────────────────── */
+html {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; margin: 0; }
+p { margin: 0; }
+a { color: inherit; text-decoration: inherit; }
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+button { cursor: pointer; }
+img, svg { display: block; max-width: 100%; }
+[hidden] { display: none; }
 
 :root,
 [data-theme="dark"] {
-  --page-bg:   #06060F;
-  --page-text: #FFFFFF;
+  /* FIXED: removed --page-bg and --page-text — they were dead tokens never referenced
+     anywhere in the codebase. --bg and --text are the canonical equivalents. */
 
   --pill-bg:            rgba(255,255,255,0.08);
   --pill-border:        rgba(255,255,255,0.12);
@@ -12,7 +35,6 @@
   --pill-inactive-text: rgba(255,255,255,0.5);
   --img-skeleton:       rgba(255,255,255,0.06);
 
-  /* FilterBar — inverted pill (white on dark page) */
   --filter-bg:             #FFFFFF;
   --filter-border:         rgba(0,0,0,0.06);
   --filter-active-chip:    rgba(0,0,0,0.08);
@@ -31,12 +53,14 @@
   --accent-end:      #D946A8;
   --accent-dim:      rgba(123, 92, 240, 0.15);
   --accent-gradient: linear-gradient(135deg, #7B5CF0, #A855C8, #D946A8);
+  --accent-brand:    linear-gradient(90deg, #6B30F5, #C03FA0);
 
   --border:          rgba(240, 238, 255, 0.08);
   --border-active:   rgba(123, 92, 240, 0.4);
 
   --font-display:    'Syne', sans-serif;
   --font-body:       'Lora', serif;
+  --font-ethiopic:   var(--font-noto-ethiopic, 'Noto Sans Ethiopic'), 'Kefa', 'Nyala', sans-serif;
 
   --space-xs:        4px;
   --space-sm:        8px;
@@ -66,9 +90,6 @@
 }
 
 [data-theme="light"] {
-  --page-bg:    #F5F5F0;
-  --page-text:  #000000;
-
   --pill-bg:            rgba(0,0,0,0.06);
   --pill-border:        rgba(0,0,0,0.10);
   --pill-active-bg:     #000000;
@@ -76,7 +97,6 @@
   --pill-inactive-text: rgba(0,0,0,0.45);
   --img-skeleton:       rgba(0,0,0,0.06);
 
-  /* FilterBar — inverted pill (dark on light page) */
   --filter-bg:             #111111;
   --filter-border:         rgba(255,255,255,0.06);
   --filter-active-chip:    rgba(255,255,255,0.12);
@@ -93,12 +113,6 @@
 
   --border:        rgba(0, 0, 0, 0.10);
   --border-active: rgba(123, 92, 240, 0.5);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html,
@@ -145,11 +159,13 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* FIXED: was hardcoded rgba(240,238,255,0.4) — didn't change in light mode.
+   var(--text-muted) correctly adapts to both themes. */
 .cover-small {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 400;
-  color: rgba(240, 238, 255, 0.4);
+  color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
@@ -173,7 +189,14 @@ body {
   to   { opacity: 1; transform: translateY(0);   }
 }
 
-/* ── Filmstrip scrollbar hide ────────────────────── */
+/* FIXED: overflow:hidden on the filmstrip container prevents the thumbnails from
+   spilling outside the preloader at very narrow viewport widths. */
+.filmstrip-wrap {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+/* ── Filmstrip / flow-scroll scrollbar hide ──────── */
 .filmstrip,
 .flow-scroll {
   scrollbar-width: none;
@@ -182,37 +205,6 @@ body {
 .filmstrip::-webkit-scrollbar,
 .flow-scroll::-webkit-scrollbar {
   display: none;
-}
-
-/* ── Gallery layouts ─────────────────────────────── */
-.flow-layout {
-  columns: 2;
-  column-gap: var(--gap-gallery);
-  padding: 3px;
-}
-@media (min-width: 1024px) {
-  .flow-layout { columns: 3; }
-}
-
-.grid-layout {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-}
-@media (max-width: 768px) {
-  .grid-layout { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 480px) {
-  .grid-layout { grid-template-columns: repeat(2, 1fr); }
-}
-
-.series-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--gap-gallery);
-}
-@media (min-width: 768px) {
-  .series-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ── Responsive gallery grid ─────────────────────── */
@@ -238,19 +230,132 @@ body {
   }
 }
 
-/* ── Filter bar ───────────────────────────────────── */
-.filter-bar-inner::-webkit-scrollbar { display: none; }
+/* ── Fidel index view ────────────────────────────── */
+.fidel-caption {
+  padding-top: 40px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
 
-/* ── Theme toggle — lift above filter bar on mobile ── */
-@media (max-width: 640px) {
-  .theme-toggle-wrap {
-    bottom: 90px !important;
+.fidel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+  padding: 32px 24px 140px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+@media (max-width: 480px) {
+  .fidel-grid {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px;
+    padding: 24px 16px 140px;
   }
 }
 
-/* ── Mobile overrides ────────────────────────────── */
-@media (max-width: 768px) {
-  .flow-layout { columns: 2 !important; }
+.fidel-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  overflow: hidden;
+  /* opacity/transform are driven inline by useScrollReveal — the transition here
+     animates both the reveal and the hover border/color changes. */
+  transition: opacity 500ms ease, transform 500ms ease,
+              border-color 200ms ease;
+}
+
+.fidel-char {
+  font-family: var(--font-ethiopic);
+  font-size: clamp(24px, 4vw, 32px);
+  line-height: 1;
+  color: var(--text);
+  z-index: 1;
+  transition: color 200ms ease, text-shadow 200ms ease;
+}
+.fidel-translit {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  z-index: 1;
+  transition: color 200ms ease;
+}
+
+.fidel-cell.dimmed .fidel-char,
+.fidel-cell.dimmed .fidel-translit {
+  color: var(--text-subtle);
+}
+
+.fidel-cell.live {
+  cursor: pointer;
+  padding: 0;
+}
+.fidel-cell.live:hover,
+.fidel-cell.live:focus-visible {
+  border-color: var(--border-active);
+}
+
+/* Artwork thumbnail fades in behind the character on hover/focus. */
+.fidel-thumb {
+  opacity: 0;
+  transition: opacity 250ms ease;
+  z-index: 0;
+}
+.fidel-cell.live:hover .fidel-thumb,
+.fidel-cell.live:focus-visible .fidel-thumb {
+  opacity: 1;
+}
+.fidel-cell.live:hover .fidel-char,
+.fidel-cell.live:focus-visible .fidel-char {
+  color: #ffffff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+}
+.fidel-cell.live:hover .fidel-translit,
+.fidel-cell.live:focus-visible .fidel-translit {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Filter bar ──────────────────────────────────── */
+.filter-bar-inner::-webkit-scrollbar { display: none; }
+
+/* FIXED: gradient hint shows at ≤480px to signal that more filters exist beyond the
+   visible clip edge. At wider viewports all filters fit, so the hint is hidden. */
+.filter-overflow-hint {
+  display: none;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 48px;
+  background: linear-gradient(to right, transparent, var(--filter-bg));
+  border-radius: 0 999px 999px 0;
+  pointer-events: none;
+  z-index: 1;
+}
+@media (max-width: 480px) {
+  .filter-overflow-hint {
+    display: block;
+  }
+}
+
+/* ── Theme toggle + social pill — lift above filter bar on mobile ── */
+@media (max-width: 640px) {
+  .theme-toggle-wrap,
+  .social-link-wrap {
+    bottom: 90px !important;
+  }
 }
 
 /* ── Focus ring ──────────────────────────────────── */
@@ -261,6 +366,27 @@ body {
 }
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+/* ── Hamburger → X morph (about drawer toggle) ───── */
+.menu-bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--accent-brand);
+  border-radius: 1px;
+  transition: transform 300ms ease, opacity 200ms ease;
+}
+.menu-bar-mid { width: 16px; }
+/* gap 5px + bar 2px = 7px between bar centers — translate collapses them into an X */
+.menu-toggle[data-open] .menu-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.menu-toggle[data-open] .menu-bar-mid          { opacity: 0; }
+.menu-toggle[data-open] .menu-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── About drawer Instagram link hover ───────────── */
+.drawer-ig-link:hover {
+  border-color: var(--border-active) !important;
+  color: var(--text) !important;
 }
 
 /* ── TopBar backdrop blur ────────────────────────── */
@@ -274,8 +400,7 @@ body {
   background: rgba(245, 245, 240, 0.8);
 }
 
-/* ── Flow card responsive sizing ────────────────── */
-/* Cards fill ~85% of the available viewport height so no awkward dark bands appear */
+/* ── Flow card responsive sizing ─────────────────── */
 .flow-item {
   height: min(calc(100svh - 108px), 580px);
   aspect-ratio: 3 / 4;
@@ -292,17 +417,67 @@ body {
   position: relative;
 }
 
-/* ── Lightbox mobile info overlay ───────────────── */
-.lightbox-mobile-info {
-  display: none;
+/* ── Flow scroll-state zoom ──────────────────────── */
+/* Inner track carries the flex layout AND the zoom transform — the transform must not
+   live on the scroll container (it would change the scrollable area mid-gesture).
+   transform-origin is set inline by FlowLayout to the viewport center at zoom start. */
+.flow-track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 100%;
+  width: max-content;
+  gap: 12px;
+  /* Ease back slowly once scrolling stops. */
+  transition: transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.flow-track[data-scrolling] {
+  transform: scale(0.6);
+  /* Zoom out faster than the ease-back. */
+  transition-duration: 300ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-track[data-scrolling] { transform: none; }
 }
 
-/* ── Lightbox — hide info card on mobile, expand image ── */
-@media (max-width: 640px) {
-  .lightbox-meta  { display: none !important; }
-  .lightbox-image { max-width: 92vw !important; height: 75vh !important; }
-  .lightbox-mobile-info { display: block !important; }
+/* ── Card hover — CSS-native (pure visuals: no text overlay) ── */
+.card-img {
+  transition: transform 400ms ease;
 }
+.reveal-item:hover .card-img {
+  transform: scale(1.05);
+}
+.flow-item:hover .card-img {
+  transform: scale(1.04);
+}
+
+/* ── Lightbox responsive ─────────────────────────── */
+@media (max-width: 640px) {
+  .lightbox-image { max-width: 92vw !important; height: 75vh !important; }
+}
+
+/* ── View crossfade (View Transitions API) ───────── */
+/* Fired by useView's setView when switching Flow/Grid/Fidel. Browsers without
+   the API (and reduced-motion users) get an instant swap — see useView.ts. */
+::view-transition-old(root) {
+  animation: vt-fade-out 160ms ease both;
+}
+::view-transition-new(root) {
+  animation: vt-fade-in 220ms ease both;
+}
+@keyframes vt-fade-out {
+  to { opacity: 0; }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; }
+}
+
+/* Fixed chrome is snapshotted separately so it doesn't visibly flicker while
+   the gallery content crossfades underneath it. */
+.topbar            { view-transition-name: topbar; }
+.theme-toggle-wrap { view-transition-name: theme-toggle; }
+.social-link-wrap  { view-transition-name: social-link; }
 
 /* ── Reduced motion ──────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

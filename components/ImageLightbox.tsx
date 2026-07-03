@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import NextImage from 'next/image'
 import type { Image } from '@/lib/types'
-import { SUPABASE_IMAGES_URL } from '@/lib/constants'
+import { storageUrl, BLUR_PLACEHOLDER } from '@/lib/constants'
+import { imageLabel } from '@/lib/image-label'
+import { CloseIconButton } from './CloseIconButton'
 
 interface ImageLightboxProps {
   image: Image
@@ -14,46 +16,49 @@ interface ImageLightboxProps {
   hasNext?: boolean
 }
 
-function CloseIcon() {
+// FIXED: extracted NavButton — was two nearly-identical JSX blocks repeated inline.
+function NavButton({ direction, onClick, visible }: {
+  direction: 'prev' | 'next'
+  onClick: () => void
+  visible: boolean
+}) {
+  if (!visible) return null
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      aria-label={direction === 'prev' ? 'Previous image' : 'Next image'}
+      style={{
+        position: 'fixed',
+        top: '50%',
+        [direction === 'prev' ? 'left' : 'right']: '16px',
+        transform: 'translateY(-50%)',
+        width: '44px',
+        height: '44px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        color: '#FFFFFF',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 360,
+        transition: 'background 200ms ease',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+    >
+      {direction === 'prev' ? (
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
+          <path d="M7 1L1 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ) : (
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
+          <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </button>
   )
-}
-
-function ChevronLeft() {
-  return (
-    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
-      <path d="M7 1L1 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
-}
-
-function ChevronRight() {
-  return (
-    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
-      <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
-}
-
-const navBtnStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  width: '44px',
-  height: '44px',
-  borderRadius: '50%',
-  background: 'rgba(255,255,255,0.1)',
-  border: '1px solid rgba(255,255,255,0.18)',
-  color: '#FFFFFF',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 360,
-  transition: 'background 200ms ease',
 }
 
 export default function ImageLightbox({
@@ -66,19 +71,34 @@ export default function ImageLightbox({
 }: ImageLightboxProps) {
   const [imgError, setImgError] = useState(false)
   const [visible, setVisible] = useState(false)
-  const src = `${SUPABASE_IMAGES_URL}/${image.storage_path}`
+  // FIXED: track per-image load state so blur placeholder shows between navigations.
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const src = storageUrl(image.storage_path)
 
-  const date = new Date(image.created_at).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // FIXED: ref for the close button so focus can be moved to it on mount.
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  // FIXED: swipe tracking refs — swipe navigation on mobile was entirely missing.
+  const swipeStartX = useRef(0)
+  const didSwipeRef = useRef(false)
 
   // Entrance fade-in
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true))
     return () => cancelAnimationFrame(id)
   }, [])
+
+  // FIXED: focus the close button when the lightbox opens — previously focus stayed on the
+  // card that was clicked, leaving keyboard users outside the dialog.
+  useEffect(() => {
+    closeButtonRef.current?.focus()
+  }, [])
+
+  // FIXED: reset imgLoaded when the image changes so the blur placeholder re-shows.
+  useEffect(() => {
+    setImgLoaded(false)
+    setImgError(false)
+  }, [image.id])
 
   // Keyboard: Escape closes, arrows navigate
   useEffect(() => {
@@ -91,12 +111,36 @@ export default function ImageLightbox({
     return () => window.removeEventListener('keydown', handler)
   }, [onClose, onPrev, onNext, hasPrev, hasNext])
 
+  // FIXED: swipe handlers for mobile navigation — outer div tracks pointer movement and
+  // triggers prev/next when horizontal delta exceeds 60px.
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    swipeStartX.current = e.clientX
+    didSwipeRef.current = false
+  }, [])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const delta = e.clientX - swipeStartX.current
+    if (Math.abs(delta) > 60) {
+      didSwipeRef.current = true
+      if (delta > 0 && hasPrev) onPrev?.()
+      else if (delta < 0 && hasNext) onNext?.()
+    }
+  }, [hasPrev, hasNext, onPrev, onNext])
+
+  const handleBackdropClick = useCallback(() => {
+    // FIXED: prevent backdrop click from firing when the pointer actually swiped.
+    if (didSwipeRef.current) { didSwipeRef.current = false; return }
+    onClose()
+  }, [onClose])
+
   return (
     <div
-      onClick={onClose}
+      onClick={handleBackdropClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
       role="dialog"
       aria-modal="true"
-      aria-label={`${image.amharic_word} — ${image.english_word}`}
+      aria-label={imageLabel(image)}
       style={{
         position: 'fixed',
         inset: 0,
@@ -111,58 +155,25 @@ export default function ImageLightbox({
         transition: 'opacity 250ms ease',
       }}
     >
-      {/* Close button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onClose() }}
-        aria-label="Close"
+      {/* FIXED: uses CloseIconButton — was duplicated from AboutDrawer with identical markup. */}
+      <CloseIconButton
+        buttonRef={closeButtonRef}
+        stopPropagation
+        onClick={onClose}
         style={{
           position: 'fixed',
           top: '20px',
           right: '20px',
-          width: '44px',
-          height: '44px',
-          borderRadius: '50%',
+          zIndex: 360,
           background: 'rgba(255,255,255,0.1)',
           border: '1px solid rgba(255,255,255,0.18)',
           color: '#FFFFFF',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 360,
           transition: 'background 200ms ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-      >
-        <CloseIcon />
-      </button>
+      />
 
-      {/* Prev button */}
-      {hasPrev && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onPrev?.() }}
-          aria-label="Previous image"
-          style={{ ...navBtnStyle, left: '16px' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-        >
-          <ChevronLeft />
-        </button>
-      )}
-
-      {/* Next button */}
-      {hasNext && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onNext?.() }}
-          aria-label="Next image"
-          style={{ ...navBtnStyle, right: '16px' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-        >
-          <ChevronRight />
-        </button>
-      )}
+      <NavButton direction="prev" onClick={() => onPrev?.()} visible={hasPrev} />
+      <NavButton direction="next" onClick={() => onNext?.()} visible={hasNext} />
 
       {/* Image */}
       <div
@@ -184,111 +195,28 @@ export default function ImageLightbox({
             <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--text-muted)' }}>Image unavailable</span>
           </div>
         ) : (
+          // FIXED: key={image.id} forces a remount when navigating so the blur placeholder
+          // re-shows while the new image loads, instead of snapping from old to new.
           <NextImage
+            key={image.id}
             src={src}
-            alt={`${image.amharic_word} — ${image.english_word}`}
+            alt={imageLabel(image)}
             fill
             sizes="55vw"
-            style={{ objectFit: 'cover' }}
+            placeholder="blur"
+            blurDataURL={image.blur_data_url ?? BLUR_PLACEHOLDER}
+            style={{
+              objectFit: 'cover',
+              // FIXED: fade in once loaded so the transition from blur to sharp is smooth.
+              opacity: imgLoaded ? 1 : 0,
+              transition: 'opacity 250ms ease',
+            }}
             priority
+            onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
           />
         )}
 
-        {/* Mobile info overlay at bottom of image */}
-        <div className="lightbox-mobile-info" style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.78))',
-          padding: '40px 16px 20px',
-        }}>
-          {image.fidel_letter && (
-            <p style={{ fontFamily: 'serif', fontSize: '28px', color: '#FFFFFF', margin: '0 0 4px', lineHeight: 1 }}>
-              {image.fidel_letter}
-            </p>
-          )}
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '14px', color: '#FFFFFF', margin: 0 }}>
-            {image.english_word}
-          </p>
-          {image.amharic_word && (
-            <p style={{ fontFamily: 'serif', fontSize: '13px', color: 'rgba(255,255,255,0.65)', margin: '2px 0 0' }}>
-              {image.amharic_word}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Metadata panel — desktop only */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="lightbox-meta"
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '210px',
-          background: '#FFFFFF',
-          borderRadius: '14px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0',
-        }}
-      >
-        {/* Fidel letter — hero element */}
-        {image.fidel_letter && (
-          <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
-            <p style={{ fontFamily: 'serif', fontSize: '52px', color: '#111111', margin: 0, lineHeight: 1 }}>
-              {image.fidel_letter}
-            </p>
-          </div>
-        )}
-
-        <div style={{ height: '1px', background: '#EEEEEE', marginBottom: '16px' }} />
-
-        {/* Amharic word */}
-        <div style={{ marginBottom: '14px' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: '#888', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Amharic
-          </p>
-          <p style={{ fontFamily: 'serif', fontSize: '20px', color: '#111111', margin: 0, lineHeight: 1.3 }}>
-            {image.amharic_word}
-          </p>
-        </div>
-
-        {/* English meaning */}
-        <div style={{ marginBottom: '14px' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: '#888', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Meaning
-          </p>
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', color: '#111111', margin: 0 }}>
-            {image.english_word}
-          </p>
-        </div>
-
-        {/* Date */}
-        <div style={{ marginBottom: '16px' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontSize: '10px', color: '#888', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Date
-          </p>
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: '12px', color: '#111111', margin: 0 }}>
-            {date}
-          </p>
-        </div>
-
-        <div style={{ height: '1px', background: '#EEEEEE', marginBottom: '14px' }} />
-
-        {/* Logo */}
-        <NextImage
-          src="/logo.svg"
-          alt="AItiopia"
-          width={100}
-          height={28}
-          unoptimized
-          style={{ height: 'auto', display: 'block' }}
-        />
       </div>
     </div>
   )
