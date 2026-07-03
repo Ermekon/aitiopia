@@ -4,10 +4,10 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import NextImage from 'next/image'
 import { storageUrl, BLUR_PLACEHOLDER } from '@/lib/constants'
 import { saveImage, restoreImage, logout, type SaveImageInput } from './actions'
-import type { Image, Series, SeriesSlug } from '@/lib/types'
+import type { ImageRow, Series, SeriesSlug } from '@/lib/types'
 
 interface Props {
-  queue: Image[]
+  queue: ImageRow[]
   seriesList: Series[]
 }
 
@@ -36,7 +36,7 @@ function cleanInitial(value: string | null): string {
   return value
 }
 
-function initialForm(img: Image): FormState {
+function initialForm(img: ImageRow): FormState {
   return {
     series:             img.series,
     fidel_letter:       cleanInitial(img.fidel_letter),
@@ -281,7 +281,9 @@ export default function CurateClient({ queue, seriesList }: Props) {
       </header>
 
       {/* Body: image + form */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      {/* FIXED: layout classes (curate-body/curate-panel) — the two panes had no
+          breakpoint, leaving a ~128px form sliver on phones; ≤768px they now stack. */}
+      <div className="curate-body" style={{ flex: 1, minHeight: 0 }}>
         <div style={{ flex: 1, position: 'relative', margin: '20px', minWidth: 0 }}>
           <NextImage
             key={item.id}
@@ -297,8 +299,9 @@ export default function CurateClient({ queue, seriesList }: Props) {
         </div>
 
         <form
+          className="curate-panel"
           onSubmit={(e) => { e.preventDefault(); submit('published') }}
-          style={{ width: 'min(360px, 40vw)', padding: '24px', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}
+          style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}
         >
           <p style={{ fontSize: '12px', color: 'var(--text-subtle)', wordBreak: 'break-all' }}>
             {item.storage_path} · {item.width}×{item.height}

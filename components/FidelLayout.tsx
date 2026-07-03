@@ -6,12 +6,12 @@ import { useScrollReveal } from '@/hooks/useScrollReveal'
 import { FIDEL_FAMILIES, fidelBase } from '@/lib/fidel'
 import { storageUrl } from '@/lib/constants'
 import { imageLabel } from '@/lib/image-label'
-import type { Image } from '@/lib/types'
+import type { GalleryImage } from '@/lib/types'
 
 interface FidelLayoutProps {
-  // Letters-series images that have fidel_letter curated (filtered by PhotoGallery).
-  images: Image[]
-  onSelect: (image: Image) => void
+  // Letters-series images that have fidel_letter curated (filtered by Gallery).
+  images: GalleryImage[]
+  onSelect: (image: GalleryImage) => void
 }
 
 export default function FidelLayout({ images, onSelect }: FidelLayoutProps) {
@@ -20,7 +20,7 @@ export default function FidelLayout({ images, onSelect }: FidelLayoutProps) {
   // First published artwork per base family. Curated fidel_letter may be any order
   // (e.g. ቡ), so normalize to the family base (በ) before matching chart cells.
   const byFamily = useMemo(() => {
-    const m = new Map<string, Image>()
+    const m = new Map<string, GalleryImage>()
     for (const img of images) {
       const base = fidelBase(img.fidel_letter!)
       if (base && !m.has(base)) m.set(base, img)
@@ -61,10 +61,13 @@ export default function FidelLayout({ images, onSelect }: FidelLayoutProps) {
               <span className="fidel-translit" aria-hidden="true">{translit}</span>
             </button>
           ) : (
+            // FIXED: dimmed cells were invisible to screen readers (aria-hidden spans +
+            // title-only wrapper) — SR users perceived 4 letters instead of 34.
             <div
               key={char}
               className="fidel-cell dimmed reveal-item"
-              title={`${char} (${translit}) — not yet illustrated`}
+              role="img"
+              aria-label={`${char} (${translit}) — not yet illustrated`}
             >
               <span className="fidel-char" aria-hidden="true">{char}</span>
               <span className="fidel-translit" aria-hidden="true">{translit}</span>

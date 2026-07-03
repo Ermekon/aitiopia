@@ -39,7 +39,8 @@ img, svg { display: block; max-width: 100%; }
   --filter-border:         rgba(0,0,0,0.06);
   --filter-active-chip:    rgba(0,0,0,0.08);
   --filter-active-text:    #0A0A0A;
-  --filter-inactive-text:  rgba(0,0,0,0.38);
+  /* FIXED: 0.38 alpha ≈ 2.9:1 on white — below WCAG AA (4.5:1) for 13px text. */
+  --filter-inactive-text:  rgba(0,0,0,0.58);
 
   --bg:              #06060F;
   --bg-raised:       #0E0E1A;
@@ -62,12 +63,8 @@ img, svg { display: block; max-width: 100%; }
   --font-body:       'Lora', serif;
   --font-ethiopic:   var(--font-noto-ethiopic, 'Noto Sans Ethiopic'), 'Kefa', 'Nyala', sans-serif;
 
-  --space-xs:        4px;
-  --space-sm:        8px;
-  --space-md:        16px;
-  --space-lg:        32px;
-  --space-xl:        64px;
-  --space-2xl:       128px;
+  /* FIXED: removed --space-* scale — defined but used zero times; dead tokens
+     mislead readers into thinking a spacing system is in force. */
   --gap-gallery:     3px;
   --max-prose:       560px;
   --max-site:        1440px;
@@ -101,7 +98,8 @@ img, svg { display: block; max-width: 100%; }
   --filter-border:         rgba(255,255,255,0.06);
   --filter-active-chip:    rgba(255,255,255,0.12);
   --filter-active-text:    #FFFFFF;
-  --filter-inactive-text:  rgba(255,255,255,0.42);
+  /* FIXED: 0.42 alpha ≈ 4.0:1 on #111 — below WCAG AA (4.5:1) for 13px text. */
+  --filter-inactive-text:  rgba(255,255,255,0.62);
 
   --bg:         #F5F5F0;
   --bg-raised:  #EAEAE5;
@@ -287,14 +285,22 @@ body {
   font-family: var(--font-display);
   font-size: 10px;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
+  /* FIXED: --text-muted (0.45 alpha) ≈ 3.7:1 — fails AA at 10px; full-text color at
+     0.68 opacity clears 4.5:1 in both themes. */
+  color: var(--text);
+  opacity: 0.68;
   z-index: 1;
   transition: color 200ms ease;
 }
 
-.fidel-cell.dimmed .fidel-char,
+/* FIXED: dimmed chars were --text-subtle (0.15 alpha ≈ 1.5:1) — they convey the
+   "not yet illustrated" state, so they must be perceivable: muted (≈3.7:1) passes
+   the 3:1 large-text threshold at ≥24px, and stays clearly distinct from live cells. */
+.fidel-cell.dimmed .fidel-char {
+  color: var(--text-muted);
+}
 .fidel-cell.dimmed .fidel-translit {
-  color: var(--text-subtle);
+  opacity: 0.45;
 }
 
 .fidel-cell.live {
@@ -350,11 +356,55 @@ body {
   }
 }
 
-/* ── Theme toggle + social pill — lift above filter bar on mobile ── */
+/* ── Theme toggle + social pill positioning ──────── */
+/* FIXED: shared .floating-pill shell — the raised-bg/radius/shadow/padding block was
+   duplicated inline in both ThemeToggle and SocialLink. */
+.floating-pill {
+  background: var(--bg-raised);
+  border-radius: var(--radius-pill);
+  padding: 8px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  transition: background 200ms ease;
+}
+.theme-toggle-wrap {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 200;
+}
+.social-link-wrap {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+}
+/* Lift above the filter bar on mobile. */
 @media (max-width: 640px) {
   .theme-toggle-wrap,
   .social-link-wrap {
-    bottom: 90px !important;
+    bottom: 90px;
+  }
+}
+
+/* ── Curate two-pane layout ──────────────────────── */
+/* FIXED: no breakpoint existed — at phone widths the form was a ~128px sliver.
+   Width/border live here (not inline) so the media query wins without !important. */
+.curate-body {
+  display: flex;
+}
+.curate-panel {
+  width: min(360px, 40vw);
+  border-left: 1px solid var(--border);
+}
+@media (max-width: 768px) {
+  .curate-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .curate-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
   }
 }
 
@@ -383,10 +433,24 @@ body {
 .menu-toggle[data-open] .menu-bar-mid          { opacity: 0; }
 .menu-toggle[data-open] .menu-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* ── About drawer Instagram link hover ───────────── */
+/* ── About drawer Instagram link ─────────────────── */
+.drawer-ig-link {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 200ms ease, color 200ms ease;
+}
 .drawer-ig-link:hover {
-  border-color: var(--border-active) !important;
-  color: var(--text) !important;
+  border-color: var(--border-active);
+  color: var(--text);
 }
 
 /* ── TopBar backdrop blur ────────────────────────── */
@@ -452,9 +516,39 @@ body {
   transform: scale(1.04);
 }
 
-/* ── Lightbox responsive ─────────────────────────── */
+/* ── Lightbox nav buttons ────────────────────────── */
+.lightbox-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 360;
+  transition: background 200ms ease;
+}
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Lightbox image sizing ───────────────────────── */
+.lightbox-image {
+  height: 80vh;
+  width: auto;
+  max-width: 55vw;
+}
 @media (max-width: 640px) {
-  .lightbox-image { max-width: 92vw !important; height: 75vh !important; }
+  .lightbox-image {
+    max-width: 92vw;
+    height: 75vh;
+  }
 }
 
 /* ── View crossfade (View Transitions API) ───────── */
@@ -476,6 +570,14 @@ body {
 /* Fixed chrome is snapshotted separately so it doesn't visibly flicker while
    the gallery content crossfades underneath it. */
 .topbar            { view-transition-name: topbar; }
+
+/* FIXED: TopBar horizontal padding owned by CSS (was inline '0 24px'), and the view
+   pills collapse to icon-only ≤480px — the three labeled pills overflowed at 320–400px. */
+.topbar { padding: 0 24px; }
+@media (max-width: 480px) {
+  .topbar { padding: 0 16px; }
+  .view-pill-label { display: none; }
+}
 .theme-toggle-wrap { view-transition-name: theme-toggle; }
 .social-link-wrap  { view-transition-name: social-link; }
 

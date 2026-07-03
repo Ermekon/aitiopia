@@ -173,12 +173,13 @@ export default function AboutDrawer({ isOpen, onClose, toggleRef }: AboutDrawerP
             </p>
           </div>
 
+          {/* Styled entirely by .drawer-ig-link — mixing inline styles with a CSS
+              hover state would force !important to win the specificity fight. */}
           <a
             href={INSTAGRAM_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="drawer-ig-link"
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: '999px', fontFamily: 'var(--font-display)', fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'border-color 200ms ease, color 200ms ease' }}
           >
             @aitiopia ↗
           </a>

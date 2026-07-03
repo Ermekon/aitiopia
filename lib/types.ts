@@ -9,7 +9,10 @@ export type FilterKey = 'all' | SeriesSlug
 //   words:   transliteration (Word), amharic_word (Amharic Writing),
 //            amharic_definition, english_word (English Translation)
 //   miscellaneous: description only
-export type Image = {
+
+// Full images-table row — admin/curation contexts only.
+// Named ImageRow (not Image) so it can't shadow next/image or the DOM Image.
+export type ImageRow = {
   id: string
   storage_path: string
   width: number
@@ -33,6 +36,16 @@ export type Image = {
   content_hash: string | null
   updated_at: string
 }
+
+// The subset the public gallery actually renders (and its JSON-LD needs).
+// getImages() selects exactly these columns — keep GALLERY_COLUMNS in
+// lib/queries.ts in sync with this type.
+export type GalleryImage = Pick<
+  ImageRow,
+  | 'id' | 'storage_path' | 'width' | 'height' | 'series'
+  | 'fidel_letter' | 'amharic_word' | 'english_word' | 'transliteration'
+  | 'title' | 'alt_text' | 'description' | 'blur_data_url' | 'created_at'
+>
 
 // Lifecycle: processing (ingest running) → draft (awaiting curation)
 //          → published (live on site) | rejected (culled, file may be deleted)

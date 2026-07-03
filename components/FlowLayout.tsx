@@ -1,50 +1,15 @@
 'use client'
 
 import { useRef, useEffect, useState, useCallback } from 'react'
-import NextImage from 'next/image'
-import type { Image } from '@/lib/types'
-import { storageUrl, BLUR_PLACEHOLDER } from '@/lib/constants'
-import { imageLabel } from '@/lib/image-label'
+// FIXED: private FlowImage removed — it duplicated GalleryCard's button/NextImage/
+// blur/onError block; both now render the shared ArtworkButton.
+import ArtworkButton from './ArtworkButton'
+import EmptyState from './EmptyState'
+import type { GalleryImage } from '@/lib/types'
 
 interface FlowLayoutProps {
-  images: Image[]
-  onSelect: (image: Image) => void
-}
-
-function FlowImage({ image, index, onSelect }: { image: Image; index: number; onSelect: (img: Image) => void }) {
-  const [missing, setMissing] = useState(false)
-  if (missing) return null
-  const url = storageUrl(image.storage_path)
-  return (
-    <button
-      className="flow-item"
-      onClick={() => onSelect(image)}
-      aria-label={imageLabel(image)}
-      style={{
-        position: 'relative',
-        flexShrink: 0,
-        borderRadius: '4px',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        background: 'var(--img-skeleton)',
-        border: 'none',
-        padding: 0,
-      }}
-    >
-      <NextImage
-        src={url}
-        alt={imageLabel(image)}
-        fill
-        sizes="(max-width: 480px) 220px, 303px"
-        className="card-img"
-        style={{ objectFit: 'cover' }}
-        placeholder="blur"
-        blurDataURL={BLUR_PLACEHOLDER}
-        priority={index < 4}
-        onError={() => setMissing(true)}
-      />
-    </button>
-  )
+  images: GalleryImage[]
+  onSelect: (image: GalleryImage) => void
 }
 
 export default function FlowLayout({ images, onSelect }: FlowLayoutProps) {
@@ -148,29 +113,15 @@ export default function FlowLayout({ images, onSelect }: FlowLayoutProps) {
 
   const stopDrag = useCallback(() => setIsDragging(false), [])
 
-  const wrappedOnSelect = useCallback((img: Image) => {
+  const wrappedOnSelect = useCallback((img: GalleryImage) => {
     if (didDragRef.current) return
     onSelect(img)
   }, [onSelect])
 
-  // FIXED: empty state — previously rendered a grab-cursor div at full viewport height with no message.
+  // FIXED: uses the shared EmptyState — this block was a duplicate of Gallery's
+  // empty-state markup with the same typography.
   if (images.length === 0) {
-    return (
-      <div style={{
-        height: 'calc(100vh - 60px)',
-        marginTop: '60px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg)',
-        color: 'var(--text-muted)',
-        fontFamily: 'var(--font-display)',
-        fontSize: '14px',
-        letterSpacing: '0.04em',
-      }}>
-        No images yet
-      </div>
-    )
+    return <EmptyState message="No images yet" fullHeight />
   }
 
   return (
@@ -211,7 +162,15 @@ export default function FlowLayout({ images, onSelect }: FlowLayoutProps) {
           data-scrolling={scrolling || undefined}
         >
           {images.map((image, i) => (
-            <FlowImage key={image.id} image={image} index={i} onSelect={wrappedOnSelect} />
+            <ArtworkButton
+              key={image.id}
+              image={image}
+              onClick={() => wrappedOnSelect(image)}
+              className="flow-item"
+              sizes="(max-width: 480px) 220px, 303px"
+              priority={i < 4}
+              style={{ flexShrink: 0 }}
+            />
           ))}
         </div>
       </div>

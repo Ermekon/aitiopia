@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import NextImage from 'next/image'
-import type { Image } from '@/lib/types'
+import type { GalleryImage } from '@/lib/types'
 import { storageUrl, BLUR_PLACEHOLDER } from '@/lib/constants'
 import { imageLabel } from '@/lib/image-label'
 import { CloseIconButton } from './CloseIconButton'
 
 interface ImageLightboxProps {
-  image: Image
+  image: GalleryImage
   onClose: () => void
   onPrev?: () => void
   onNext?: () => void
@@ -24,29 +24,13 @@ function NavButton({ direction, onClick, visible }: {
 }) {
   if (!visible) return null
   return (
+    // Hover styling lives in .lightbox-nav CSS — JS mouse handlers for a hover
+    // state were a smell caused by inline styles.
     <button
+      className="lightbox-nav"
       onClick={(e) => { e.stopPropagation(); onClick() }}
       aria-label={direction === 'prev' ? 'Previous image' : 'Next image'}
-      style={{
-        position: 'fixed',
-        top: '50%',
-        [direction === 'prev' ? 'left' : 'right']: '16px',
-        transform: 'translateY(-50%)',
-        width: '44px',
-        height: '44px',
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(255,255,255,0.18)',
-        color: '#FFFFFF',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 360,
-        transition: 'background 200ms ease',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+      style={{ [direction === 'prev' ? 'left' : 'right']: '16px' }}
     >
       {direction === 'prev' ? (
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
@@ -77,6 +61,8 @@ export default function ImageLightbox({
 
   // FIXED: ref for the close button so focus can be moved to it on mount.
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  // FIXED: ref for the dialog root — the focus trap below queries focusables inside it.
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // FIXED: swipe tracking refs — swipe navigation on mobile was entirely missing.
   const swipeStartX = useRef(0)
@@ -111,6 +97,30 @@ export default function ImageLightbox({
     return () => window.removeEventListener('keydown', handler)
   }, [onClose, onPrev, onNext, hasPrev, hasNext])
 
+  // FIXED: focus trap — Tab previously walked out of the modal into the page behind
+  // the overlay. Same pattern as AboutDrawer; focusables queried live because the
+  // nav buttons mount/unmount with hasPrev/hasNext.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const el = dialogRef.current
+      if (!el) return
+      const focusable = el.querySelectorAll<HTMLElement>(
+        'button, [href], [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus() }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [])
+
   // FIXED: swipe handlers for mobile navigation — outer div tracks pointer movement and
   // triggers prev/next when horizontal delta exceeds 60px.
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -135,6 +145,7 @@ export default function ImageLightbox({
 
   return (
     <div
+      ref={dialogRef}
       onClick={handleBackdropClick}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -176,16 +187,15 @@ export default function ImageLightbox({
       <NavButton direction="next" onClick={() => onNext?.()} visible={hasNext} />
 
       {/* Image */}
+      {/* Sizing lives in .lightbox-image CSS — the ≤640px media query resizes it,
+          which inline height/maxWidth would force into !important overrides. */}
       <div
         onClick={(e) => e.stopPropagation()}
         className="lightbox-image"
         style={{
           position: 'relative',
-          height: '80vh',
-          width: 'auto',
-          maxWidth: '55vw',
           aspectRatio: '3/4',
-          borderRadius: '6px',
+          borderRadius: 'var(--radius-md)', // FIXED: token instead of hardcoded 6px
           overflow: 'hidden',
           flexShrink: 0,
         }}

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { CURATE_COOKIE, isConfigured, sessionToken } from '@/lib/curate-auth'
+import { CURATE_COOKIE, isConfigured, isValidSession } from '@/lib/curate-auth'
 import { login } from './actions'
 import CurateClient from './CurateClient'
-import type { Image, Series } from '@/lib/types'
+import type { ImageRow, Series } from '@/lib/types'
 
 export const metadata: Metadata = {
   title: 'Curate — AItiopia',
@@ -66,7 +66,7 @@ export default async function CuratePage({
   }
 
   const cookieStore = await cookies()
-  const authed = cookieStore.get(CURATE_COOKIE)?.value === sessionToken()
+  const authed = isValidSession(cookieStore.get(CURATE_COOKIE)?.value)
   if (!authed) {
     const { error } = await searchParams
     return <LoginForm showError={error === '1'} />
@@ -89,7 +89,7 @@ export default async function CuratePage({
 
   return (
     <CurateClient
-      queue={(queue ?? []) as Image[]}
+      queue={(queue ?? []) as ImageRow[]}
       seriesList={(seriesList ?? []) as Series[]}
     />
   )

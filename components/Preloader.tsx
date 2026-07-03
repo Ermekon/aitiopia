@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import NextImage from 'next/image'
-import type { Image as GalleryImage } from '@/lib/types'
+import type { GalleryImage } from '@/lib/types'
 import { storageUrl } from '@/lib/constants'
 
 interface PreloaderProps {
   onComplete: () => void
   images?: GalleryImage[]
-  loading?: boolean
 }
 
 function PreloaderThumb({ image, index, visible }: { image: GalleryImage; index: number; visible: boolean }) {
@@ -40,7 +39,7 @@ function PreloaderThumb({ image, index, visible }: { image: GalleryImage; index:
   )
 }
 
-export default function Preloader({ onComplete, images = [], loading = false }: PreloaderProps) {
+export default function Preloader({ onComplete, images = [] }: PreloaderProps) {
   const [progress, setProgress] = useState(0)
   const [hidden, setHidden] = useState(false)
   const [filmstripVisible, setFilmstripVisible] = useState(false)
@@ -52,36 +51,27 @@ export default function Preloader({ onComplete, images = [], loading = false }: 
     return () => clearTimeout(t)
   }, [])
 
-  // BEFORE: when loading=false, progress bar took 400ms to fill, then 300ms settle,
-  //         then 400ms CSS fade = 1100ms total before onComplete fired.
-  //         Content fade-in added another 600ms → LCP element visible after ~1700ms.
-  // AFTER:  fill in 150ms, no settle delay, 200ms fade = 350ms total.
-  //         Combined with PageClient's reduced 300ms content fade, LCP is unblocked
-  //         ~1200ms sooner on every page load.
+  // Brand moment, kept short: bar fills in 150ms, 200ms fade, onComplete at ~350ms
+  // so the LCP element is unblocked quickly.
   useEffect(() => {
-    const cap = loading ? 85 : 100
-    const duration = loading ? 1400 : 150   // CHANGED: 400 → 150
+    const duration = 150
     const interval = 30
-    const increment = (cap - progress) / (duration / interval)
-    let current = progress
+    const increment = 100 / (duration / interval)
+    let current = 0
 
     const timer = setInterval(() => {
       current += increment
-      if (current >= cap) {
-        current = cap
+      if (current >= 100) {
+        current = 100
         clearInterval(timer)
-        if (!loading) {
-          // CHANGED: removed 300ms settle delay; fade begins immediately
-          setHidden(true)
-          setTimeout(onComplete, 200)         // CHANGED: 400 → 200 (matches CSS below)
-        }
+        setHidden(true)
+        setTimeout(onComplete, 200) // matches the 200ms CSS fade below
       }
       setProgress(current)
     }, interval)
 
     return () => clearInterval(timer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, onComplete])
+  }, [onComplete])
 
   return (
     <div

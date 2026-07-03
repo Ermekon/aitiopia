@@ -1,11 +1,18 @@
 #!/bin/bash
 # AItiopia — copy & rename selected images to uploads/ + generate batch.csv
-# Run from Terminal: bash copy_to_uploads.sh
+# Run from Terminal: bash scripts/copy-to-uploads.sh
+#
+# SRC_* point at the local design folders (machine-specific by nature —
+# override via env vars if the asset library moves).
 
-SRC_LETTERS="/Users/ermias/Desktop/A PROJECT/AITOPIA/05_Artwroks/Website/Image/Letters/Selected"
-SRC_WORDS="/Users/ermias/Desktop/A PROJECT/AITOPIA/05_Artwroks/Website/Image/Words/Selected"
-SRC_MISC_ROOT="/Users/ermias/Desktop/A PROJECT/AITOPIA/05_Artwroks/Website/Image/Miscellaneous"
-DEST="/Users/ermias/Documents/Claude/Projects/aitiopia/uploads"
+SRC_LETTERS="${SRC_LETTERS:-/Users/ermias/Desktop/A PROJECT/AITOPIA/05_Artwroks/Website/Image/Letters/Selected}"
+SRC_WORDS="${SRC_WORDS:-/Users/ermias/Desktop/A PROJECT/AITOPIA/05_Artwroks/Website/Image/Words/Selected}"
+SRC_MISC_ROOT="${SRC_MISC_ROOT:-/Users/ermias/Desktop/A PROJECT/AITOPIA/05_Artwroks/Website/Image/Miscellaneous}"
+
+# uploads/ lives at the repo root — derived from this script's location, so the
+# script keeps working wherever the repo is checked out (the previous hardcoded
+# path pointed at a folder the project no longer lives in).
+DEST="$(cd "$(dirname "$0")/.." && pwd)/uploads"
 CSV="$DEST/batch.csv"
 HEADER="filename,series,fidel_letter,amharic_word,english_word,ge_ez_character,transliteration,title,alt_text,sort_order,featured"
 

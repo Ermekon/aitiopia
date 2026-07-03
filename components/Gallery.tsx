@@ -6,8 +6,9 @@ import FlowLayout from './FlowLayout'
 import GridLayout from './GridLayout'
 import FidelLayout from './FidelLayout'
 import FilterBar from './FilterBar'
+import EmptyState from './EmptyState'
 import { fidelBase } from '@/lib/fidel'
-import type { Image, View, FilterKey } from '@/lib/types'
+import type { GalleryImage, View, FilterKey } from '@/lib/types'
 
 // BEFORE: import ImageLightbox from './ImageLightbox'  — bundled in initial JS, parsed
 //         on every page load even though it's only shown when a user clicks an image.
@@ -15,24 +16,12 @@ import type { Image, View, FilterKey } from '@/lib/types'
 const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false })
 
 interface Props {
-  images: Image[]
+  images: GalleryImage[]
   view: View
   initialFilter?: FilterKey
 }
 
-const emptyStateStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '80px 24px 120px',
-  color: 'var(--text-muted)',
-  fontFamily: 'var(--font-display)',
-  fontSize: '14px',
-  letterSpacing: '0.04em',
-  textAlign: 'center',
-}
-
-export default function PhotoGallery({ images, view, initialFilter = 'all' }: Props) {
+export default function Gallery({ images, view, initialFilter = 'all' }: Props) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [filter, setFilter] = useState<FilterKey>(initialFilter)
 
@@ -41,13 +30,7 @@ export default function PhotoGallery({ images, view, initialFilter = 'all' }: Pr
     return images.filter((img) => img.series === filter)
   }, [filter, images])
 
-  // BEFORE: images.findIndex((i) => i.id === img.id) — O(n) linear scan on every click.
-  //         Also recreated as a new Map on every render with no memoisation.
-  // AFTER:  Map<id, index> built once per images/visibleImages change — O(1) lookup.
-  const imageIndexMap = useMemo(
-    () => new Map(images.map((img, i) => [img.id, i])),
-    [images]
-  )
+  // Map<id, index> memoised per array change — O(1) lookup on click.
   const visibleIndexMap = useMemo(
     () => new Map(visibleImages.map((img, i) => [img.id, i])),
     [visibleImages]
@@ -71,20 +54,14 @@ export default function PhotoGallery({ images, view, initialFilter = 'all' }: Pr
     [fidelImages]
   )
 
-  // BEFORE: onSelect={(img) => setSelectedIndex(images.findIndex(...))} — new arrow
-  //         function created on every PhotoGallery render, breaking referential equality
-  //         for FlowLayout and GridLayout props.
-  // AFTER:  useCallback with stable deps — FlowLayout/GridLayout see the same function
-  //         reference between renders, enabling future React.memo optimisation.
-  const handleFlowSelect = useCallback((img: Image) => {
-    setSelectedIndex(imageIndexMap.get(img.id) ?? null)
-  }, [imageIndexMap])
-
-  const handleGridSelect = useCallback((img: Image) => {
+  // Stable callbacks — layouts keep the same function reference between renders,
+  // enabling future React.memo optimisation. Flow and Grid share the filtered
+  // set, so they share one select handler.
+  const handleVisibleSelect = useCallback((img: GalleryImage) => {
     setSelectedIndex(visibleIndexMap.get(img.id) ?? null)
   }, [visibleIndexMap])
 
-  const handleFidelSelect = useCallback((img: Image) => {
+  const handleFidelSelect = useCallback((img: GalleryImage) => {
     setSelectedIndex(fidelIndexMap.get(img.id) ?? null)
   }, [fidelIndexMap])
 
@@ -95,31 +72,33 @@ export default function PhotoGallery({ images, view, initialFilter = 'all' }: Pr
     setSelectedIndex(null)
   }, [])
 
-  const activeImages =
-    view === 'flow' ? images : view === 'fidel' ? fidelImages : visibleImages
+  // Flow and Grid both render the filtered set — previously Flow ignored the
+  // filter, so series routes (/letters) showed every series in Flow view.
+  const activeImages = view === 'fidel' ? fidelImages : visibleImages
   const selected = selectedIndex !== null ? activeImages[selectedIndex] ?? null : null
 
   return (
     <>
       {view === 'flow' && (
-        <FlowLayout images={images} onSelect={handleFlowSelect} />
+        <FlowLayout images={visibleImages} onSelect={handleVisibleSelect} />
       )}
 
       {view === 'fidel' && (
         <FidelLayout images={fidelImages} onSelect={handleFidelSelect} />
       )}
 
+      {/* FIXED: shared EmptyState — this markup was duplicated with FlowLayout's copy. */}
       {view === 'grid' && (
-        <>
-          {visibleImages.length === 0 ? (
-            <div style={emptyStateStyle}>
-              {filter === 'all' ? 'No images yet' : 'No images in this series yet'}
-            </div>
-          ) : (
-            <GridLayout images={visibleImages} onSelect={handleGridSelect} />
-          )}
-          <FilterBar active={filter} onChange={handleFilterChange} />
-        </>
+        visibleImages.length === 0 ? (
+          <EmptyState message={filter === 'all' ? 'No images yet' : 'No images in this series yet'} />
+        ) : (
+          <GridLayout images={visibleImages} onSelect={handleVisibleSelect} />
+        )
+      )}
+
+      {/* The series filter applies to Flow and Grid alike; Fidel is letters-only. */}
+      {view !== 'fidel' && (
+        <FilterBar active={filter} onChange={handleFilterChange} />
       )}
 
       {selected !== null && selectedIndex !== null && (

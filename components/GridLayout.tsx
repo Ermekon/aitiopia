@@ -1,12 +1,12 @@
 'use client'
 
 import { useScrollReveal } from '@/hooks/useScrollReveal'
-import PhotoCard from './PhotoCard'
-import type { Image } from '@/lib/types'
+import GalleryCard from './GalleryCard'
+import type { GalleryImage } from '@/lib/types'
 
 interface GridLayoutProps {
-  images: Image[]
-  onSelect: (image: Image) => void
+  images: GalleryImage[]
+  onSelect: (image: GalleryImage) => void
 }
 
 export default function GridLayout({ images, onSelect }: GridLayoutProps) {
@@ -21,7 +21,7 @@ export default function GridLayout({ images, onSelect }: GridLayoutProps) {
         className="gallery-grid"
       >
         {images.map((image, i) => (
-          <PhotoCard
+          <GalleryCard
             key={image.id}
             image={image}
             onClick={() => onSelect(image)}

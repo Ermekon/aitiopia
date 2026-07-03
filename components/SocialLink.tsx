@@ -5,20 +5,9 @@ import { INSTAGRAM_URL } from '@/lib/constants'
 // Fixed bottom-right Instagram pill — visual twin of ThemeToggle (bottom-left).
 export default function SocialLink() {
   return (
-    <div
-      className="social-link-wrap"
-      style={{
-        position: 'fixed',
-        bottom: 24,
-        right: 24,
-        zIndex: 200,
-        background: 'var(--bg-raised)',
-        borderRadius: 999,
-        padding: '8px 12px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-        transition: 'background 200ms ease',
-      }}
-    >
+    // FIXED: pill shell moved to the shared .floating-pill class (was duplicated
+    // inline here and in ThemeToggle); positioning stays in .social-link-wrap.
+    <div className="social-link-wrap floating-pill">
       <a
         href={INSTAGRAM_URL}
         target="_blank"

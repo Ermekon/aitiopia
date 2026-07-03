@@ -34,10 +34,23 @@ function GridIcon() {
   )
 }
 
-const VIEWS: { key: View; label: string; Icon: (() => React.ReactElement) | null }[] = [
+// FIXED: Fidel pill gets an icon again (abstract chart tile, no Amharic glyph) so the
+// ≤480px icon-only mode can represent all three views.
+function FidelIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <rect x="0.75" y="0.75" width="10.5" height="10.5" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="4.25" cy="4.25" r="1.1" fill="currentColor" />
+      <circle cx="7.75" cy="4.25" r="1.1" fill="currentColor" />
+      <circle cx="4.25" cy="7.75" r="1.1" fill="currentColor" />
+    </svg>
+  )
+}
+
+const VIEWS: { key: View; label: string; Icon: () => React.ReactElement }[] = [
   { key: 'flow',  label: 'Flow',  Icon: FlowIcon },
   { key: 'grid',  label: 'Grid',  Icon: GridIcon },
-  { key: 'fidel', label: 'Fidel', Icon: null },
+  { key: 'fidel', label: 'Fidel', Icon: FidelIcon },
 ]
 
 // BEFORE: function TopBar(...) { ... }  — re-renders whenever any PageClient state
@@ -77,7 +90,8 @@ function TopBar({ view, onViewChange, drawerOpen, onToggleDrawer, toggleRef }: T
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 24px',
+        // FIXED: padding moved to .topbar CSS so the ≤480px media query can tighten it
+        // without fighting an inline style.
         transition: 'background 300ms ease, border-color 300ms ease',
       }}
     >
@@ -90,7 +104,7 @@ function TopBar({ view, onViewChange, drawerOpen, onToggleDrawer, toggleRef }: T
           aria-label={drawerOpen ? 'Close about panel' : 'Open about panel'}
           aria-expanded={drawerOpen}
           aria-controls="about-drawer"
-          style={{ display: 'flex', flexDirection: 'column', gap: '5px', cursor: 'pointer', background: 'none', border: 'none', padding: '4px', borderRadius: '4px' }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '5px', cursor: 'pointer', background: 'none', border: 'none', padding: '4px', borderRadius: 'var(--radius-sm)' }}
         >
           <span className="menu-bar" />
           <span className="menu-bar menu-bar-mid" />
@@ -115,7 +129,9 @@ function TopBar({ view, onViewChange, drawerOpen, onToggleDrawer, toggleRef }: T
         </a>
       </div>
 
-      <div style={{ background: 'var(--pill-bg)', border: '1px solid var(--pill-border)', borderRadius: '999px', padding: '3px', display: 'flex', gap: '2px' }}>
+      {/* FIXED: labeled group — the pill cluster was an anonymous div, so screen
+          readers had no name for the view-mode control set. */}
+      <div role="group" aria-label="View mode" style={{ background: 'var(--pill-bg)', border: '1px solid var(--pill-border)', borderRadius: '999px', padding: '3px', display: 'flex', gap: '2px' }}>
         {VIEWS.map(({ key, label, Icon }) => {
           const active = view === key
           return (
@@ -123,6 +139,7 @@ function TopBar({ view, onViewChange, drawerOpen, onToggleDrawer, toggleRef }: T
               key={key}
               onClick={() => onViewChange(key)}
               aria-pressed={active}
+              aria-label={label}
               style={{
                 fontFamily: 'var(--font-display)',
                 fontWeight: 500,
@@ -139,8 +156,10 @@ function TopBar({ view, onViewChange, drawerOpen, onToggleDrawer, toggleRef }: T
                 transition: 'all 200ms ease',
               }}
             >
-              {Icon && <Icon />}
-              {label}
+              <Icon />
+              {/* FIXED: label hidden ≤480px (icon-only pills) — three labeled pills plus
+                  the wordmark totalled ~400px of fixed chrome and overflowed small phones. */}
+              <span className="view-pill-label">{label}</span>
             </button>
           )
         })}

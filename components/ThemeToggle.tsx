@@ -56,21 +56,14 @@ export default function ThemeToggle({ theme, onChange }: Props) {
   })
 
   return (
+    // FIXED: pill shell moved to the shared .floating-pill class (was duplicated
+    // inline here and in SocialLink); positioning stays in .theme-toggle-wrap.
     <div
-      className="theme-toggle-wrap"
+      className="theme-toggle-wrap floating-pill"
       style={{
-        position: 'fixed',
-        bottom: 24,
-        left: 24,
-        zIndex: 200,
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        background: 'var(--bg-raised)',
-        borderRadius: 999,
-        padding: '8px 12px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-        transition: 'background 200ms ease',
       }}
     >
       <button style={btnStyle('light')} onClick={() => onChange('light')} aria-label="Light mode" aria-pressed={theme === 'light'}>
