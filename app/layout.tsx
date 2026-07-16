@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Syne, Lora, Noto_Sans_Ethiopic } from "next/font/google";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const syne = Syne({
@@ -80,6 +81,7 @@ export default function RootLayout({
         */}
         <Script src="/theme-init.js" strategy="beforeInteractive" />
         {children}
+        <Analytics />
       </body>
     </html>
   );
